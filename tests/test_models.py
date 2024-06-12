@@ -31,6 +31,7 @@ from service.models import Product, Category, db
 from service import app
 from tests.factories import ProductFactory
 
+
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
 )
@@ -214,3 +215,50 @@ class TestProductModel(unittest.TestCase):
         # Fetch updated product
         updated_product = Product.find(product.id)
         self.assertEqual(updated_product.description, "Updated description")
+
+
+# NEW
+class TestProduct(unittest.TestCase):
+    def setUp(self):
+        app.config["TESTING"] = True
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test.db"
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        db.init_app(app)
+        with app.app_context():
+            db.create_all()
+
+    def tearDown(self):
+        with app.app_context():
+            db.drop_all()
+
+    def test_create_product(self):
+        with app.app_context():
+            product = ProductFactory()
+            product.create()
+            self.assertIsNotNone(product.id)
+
+    def test_delete_product(self):
+        with app.app_context():
+            product = ProductFactory()
+            product.create()
+            product.delete()
+
+            deleted_product = Product.find(product.id)
+            self.assertIsNone(deleted_product)
+
+    def test_find_product_by_id(self):
+        with app.app_context():
+            product = ProductFactory()
+            product.create()
+            found_product = Product.find(product.id)
+            self.assertEqual(found_product.name, product.name)
+
+    def test_find_product_by_price(self):
+        with app.app_context():
+            product = ProductFactory()
+            product.create()
+            products = Product.find_by_price(product.price)
+            self.assertEqual(len(products.all()), 1)
+            for product in products:
+                price = product.price
+            self.assertEqual(price, product.price)
